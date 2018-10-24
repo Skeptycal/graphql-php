@@ -2,10 +2,12 @@
 
 namespace Digia\GraphQL\Execution;
 
-use Digia\GraphQL\Error\ErrorHandlerInterface;
+use Digia\GraphQL\Error\Handler\ErrorHandler;
+use Digia\GraphQL\Error\Handler\ErrorHandlerInterface;
 use Digia\GraphQL\Error\GraphQLException;
 use Digia\GraphQL\Error\InvalidTypeException;
 use Digia\GraphQL\Error\InvariantException;
+use Digia\GraphQL\Error\Handler\AddErrorMiddleware;
 use Digia\GraphQL\Language\Node\FieldNode;
 use Digia\GraphQL\Language\Node\OperationDefinitionNode;
 use Digia\GraphQL\Schema\Schema;
@@ -80,7 +82,7 @@ class Executor
     ) {
         $this->context        = $context;
         $this->fieldCollector = $fieldCollector;
-        $this->errorHandler   = $errorHandler;
+        $this->errorHandler   = $errorHandler ?? $this->createDefaultErrorHandler();
     }
 
     /**
@@ -973,11 +975,7 @@ class Executor
      */
     protected function handleError(ExecutionException $error)
     {
-        if (null !== $this->errorHandler) {
-            $this->errorHandler->handleError($error);
-        }
-
-        $this->context->addError($error);
+        $this->errorHandler->handle($error, $this->context);
     }
 
     /**
@@ -1013,5 +1011,13 @@ class Executor
         return $property instanceof \Closure
             ? $property($rootValue, $arguments, $contextValues, $info)
             : $property;
+    }
+
+    /**
+     * @return ErrorHandler
+     */
+    protected function createDefaultErrorHandler(): ErrorHandler
+    {
+        return new ErrorHandler([new AddErrorMiddleware()]);
     }
 }
