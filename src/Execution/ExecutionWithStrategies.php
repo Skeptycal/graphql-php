@@ -3,25 +3,22 @@
 namespace Digia\GraphQL\Execution;
 
 use Digia\GraphQL\Error\ErrorHandlerInterface;
+use Digia\GraphQL\Execution\Strategy\ExecutionStrategyInterface;
+use Digia\GraphQL\Execution\Strategy\ReadStrategy;
+use Digia\GraphQL\Execution\Strategy\WriteStrategy;
 use Digia\GraphQL\Language\Node\DocumentNode;
 use Digia\GraphQL\Language\Node\FragmentDefinitionNode;
 use Digia\GraphQL\Language\Node\FragmentSpreadNode;
 use Digia\GraphQL\Language\Node\OperationDefinitionNode;
 use Digia\GraphQL\Schema\Schema;
+use React\Promise\ExtendedPromiseInterface;
+use React\Promise\FulfilledPromise;
+use React\Promise\Promise;
 
-class Execution implements ExecutionInterface
+class ExecutionWithStrategies implements ExecutionInterface
 {
-
     /**
-     * @param Schema        $schema
-     * @param DocumentNode  $documentNode
-     * @param mixed         $rootValue
-     * @param mixed         $contextValues
-     * @param array         $variableValues
-     * @param null|string   $operationName
-     * @param callable|null $fieldResolver
-     * @return ExecutionResult
-     * @throws \Throwable
+     * @inheritdoc
      */
     public function execute(
         Schema $schema,
@@ -29,8 +26,8 @@ class Execution implements ExecutionInterface
         $rootValue = null,
         $contextValues = null,
         array $variableValues = [],
-        ?string $operationName = null,
-        ?callable $fieldResolver = null,
+        string $operationName = null,
+        callable $fieldResolver = null,
         ?ErrorHandlerInterface $errorHandler = null
     ): ExecutionResult {
         try {
@@ -52,10 +49,31 @@ class Execution implements ExecutionInterface
             return new ExecutionResult(null, [$error]);
         }
 
-        $data   = $this->createExecutor($context, $errorHandler)->execute();
-        $errors = $context->getErrors();
+        $fieldCollector = new FieldCollector($context);
 
-        return new ExecutionResult($data, $errors);
+        $strategy = $operationName === 'mutation'
+            ? new WriteStrategy($context, $fieldCollector)
+            : new ReadStrategy($context, $fieldCollector);
+
+        $result = null;
+
+        try {
+            $result = $strategy->execute();
+        } catch (ExecutionException $exception) {
+            $context->addError($exception);
+        } catch (\Throwable $exception) {
+            $context->addError(
+                new ExecutionException($exception->getMessage(), null, null, null, null, null, $exception)
+            );
+        }
+
+        if ($result instanceof ExtendedPromiseInterface) {
+            $result->then(null, function (ExecutionException $exception) use ($context) {
+                $context->addError($exception);
+            });
+        }
+
+        return new ExecutionResult($result, $context->getErrors());
     }
 
     /**
@@ -68,7 +86,6 @@ class Execution implements ExecutionInterface
      * @param callable|null $fieldResolver
      * @return ExecutionContext
      * @throws ExecutionException
-     * @throws \Exception
      */
     protected function createContext(
         Schema $schema,
@@ -85,7 +102,7 @@ class Execution implements ExecutionInterface
 
         foreach ($documentNode->getDefinitions() as $definition) {
             if ($definition instanceof OperationDefinitionNode) {
-                if (null === $operationName && $operation) {
+                if (null === $operationName && null !== $operation) {
                     throw new ExecutionException(
                         'Must provide operation name if query contains multiple operations.'
                     );
@@ -135,15 +152,5 @@ class Execution implements ExecutionInterface
             $operation,
             $errors
         );
-    }
-
-    /**
-     * @param ExecutionContext           $context
-     * @param ErrorHandlerInterface|null $errorHandler
-     * @return Executor
-     */
-    protected function createExecutor(ExecutionContext $context, ?ErrorHandlerInterface $errorHandler = null): Executor
-    {
-        return new Executor($context, new FieldCollector($context), $errorHandler);
     }
 }

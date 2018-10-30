@@ -40,6 +40,7 @@ class FieldCollector
      * @throws InvalidTypeException
      * @throws ExecutionException
      * @throws InvariantException
+     * @throws ConversionException
      */
     public function collectFields(
         ObjectType $runtimeType,
@@ -79,13 +80,13 @@ class FieldCollector
             if ($selection instanceof FragmentSpreadNode) {
                 $fragmentName = $selection->getNameValue();
 
-                if (!empty($visitedFragmentNames[$fragmentName])) {
+                if (isset($visitedFragmentNames[$fragmentName])) {
                     continue;
                 }
 
                 $visitedFragmentNames[$fragmentName] = true;
-                /** @var FragmentDefinitionNode $fragment */
                 $fragment = $this->context->getFragments()[$fragmentName];
+
                 $this->collectFields($runtimeType, $fragment->getSelectionSet(), $fields, $visitedFragmentNames);
 
                 continue;

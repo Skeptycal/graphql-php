@@ -83,18 +83,18 @@ class DefinitionBuilder implements DefinitionBuilderInterface
      * @param ResolverRegistryInterface|null $resolverRegistry
      * @param array                          $types
      * @param array                          $directives
-     * @param callable|null                  $resolveTypeFunction
+     * @param callable|null                  $resolveTypeCallback
      */
     public function __construct(
         array $typeDefinitionsMap,
         ?ResolverRegistryInterface $resolverRegistry = null,
         array $types = [],
         array $directives = [],
-        ?callable $resolveTypeFunction = null
+        ?callable $resolveTypeCallback = null
     ) {
         $this->typeDefinitionsMap  = $typeDefinitionsMap;
         $this->resolverRegistry    = $resolverRegistry;
-        $this->resolveTypeFunction = $resolveTypeFunction ?? [$this, 'defaultTypeResolver'];
+        $this->resolveTypeFunction = $resolveTypeCallback ?? [$this, 'defaultTypeResolver'];
 
         $this->registerTypes($types);
         $this->registerDirectives($directives);

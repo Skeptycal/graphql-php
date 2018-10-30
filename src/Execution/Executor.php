@@ -184,7 +184,7 @@ class Executor
             $fieldPath[] = $fieldName;
             try {
                 $result = $this->resolveField($objectType, $rootValue, $fieldNodes, $fieldPath);
-            } catch (UndefinedException $ex) {
+            } catch (UndefinedFieldException $ex) {
                 return null;
             }
 
@@ -382,7 +382,7 @@ class Executor
 
             try {
                 $result = $this->resolveField($objectType, $rootValue, $fieldNodes, $fieldPath);
-            } catch (UndefinedException $ex) {
+            } catch (UndefinedFieldException $ex) {
                 continue;
             }
 
@@ -413,7 +413,7 @@ class Executor
      * @param array       $path
      *
      * @return array|mixed|null
-     * @throws UndefinedException
+     * @throws UndefinedFieldException
      * @throws \Throwable
      */
     protected function resolveField(
@@ -428,7 +428,7 @@ class Executor
         $field = $this->getFieldDefinition($this->context->getSchema(), $parentType, $fieldNode->getNameValue());
 
         if (null === $field) {
-            throw new UndefinedException('Undefined field definition.');
+            throw new UndefinedFieldException('Undefined field definition.');
         }
 
         $info = $this->createResolveInfo($fieldNodes, $fieldNode, $field, $parentType, $path, $this->context);

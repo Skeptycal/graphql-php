@@ -116,7 +116,7 @@ class ObjectType implements NamedTypeInterface, CompositeTypeInterface, OutputTy
      */
     public function isTypeOf($value, $context, $info)
     {
-        return $this->isTypeOfCallback !== null
+        return null !== $this->isTypeOfCallback
             ? \call_user_func($this->isTypeOfCallback, $value, $context, $info)
             : false;
     }
@@ -140,6 +140,14 @@ class ObjectType implements NamedTypeInterface, CompositeTypeInterface, OutputTy
             $this->interfaces = $this->buildInterfaces($this->interfacesOrThunk);
         }
         return $this->interfaces;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasIsTypeOf(): bool
+    {
+        return $this->isTypeOfCallback !== null;
     }
 
     /**

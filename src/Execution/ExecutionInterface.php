@@ -12,7 +12,7 @@ interface ExecutionInterface
      * @param Schema                     $schema
      * @param DocumentNode               $documentNode
      * @param mixed                      $rootValue
-     * @param mixed                      $contextValue
+     * @param mixed                      $contextValues
      * @param array                      $variableValues
      * @param string|null                $operationName
      * @param callable|null              $fieldResolver
@@ -23,7 +23,7 @@ interface ExecutionInterface
         Schema $schema,
         DocumentNode $documentNode,
         $rootValue = null,
-        $contextValue = null,
+        $contextValues = null,
         array $variableValues = [],
         string $operationName = null,
         callable $fieldResolver = null,
